@@ -3,30 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BlackjackTise</title>
+  <title>Blackjack Sips Edition</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="container">
-    <h1>BlackjackTise</h1>
-
-    <div id="setup-screen">
-      <label for="player-count">Number of players:</label>
-      <input type="number" id="player-count" min="1" max="5" value="2" />
-      <button onclick="startGame()">Start Game</button>
-    </div>
-
-    <div id="betting-screen" class="hidden">
-      <h2>Place your bets</h2>
-      <div id="betting-area"></div>
-      <button onclick="beginRound()">Deal Cards</button>
-    </div>
-
-    <div id="game-screen" class="hidden">
-      <h2>Blackjack Table</h2>
-      <div id="table-area"></div>
-      <button onclick="resetGame()">Restart</button>
-    </div>
+  <div class="table-mat">
+    <h1>♠️ Blackjack – Sips Edition 🍻</h1>
+    <p>How many players?</p>
+    <input type="number" id="playerCount" min="1" max="10" placeholder="e.g. 3" />
+    <button onclick="startGame()">Start Game</button>
   </div>
 
   <script src="script.js"></script>

@@ -1,31 +1,45 @@
 body {
-    font-family: Arial, sans-serif;
-    background-color: #063;
-    color: #fff;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: radial-gradient(circle at center, #35654d, #1b3a2e);
+    color: white;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .table-mat {
+    background: rgba(0, 0, 0, 0.25);
+    border: 4px solid #d4af37;
+    border-radius: 40px;
+    padding: 40px 60px;
     text-align: center;
-    padding: 2rem;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
   }
   
-  .container {
-    max-width: 800px;
-    margin: auto;
-    background-color: #124;
-    padding: 2rem;
+  input {
+    padding: 10px;
+    font-size: 16px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: none;
+  }
+  
+  button {
+    margin-top: 20px;
+    padding: 12px 24px;
+    font-size: 18px;
+    background-color: #d4af37;
+    color: black;
+    border: none;
     border-radius: 10px;
-    box-shadow: 0 0 10px #000;
+    cursor: pointer;
+    transition: 0.3s;
   }
   
-  input, button {
-    font-size: 1rem;
-    margin: 0.5rem;
-    padding: 0.5rem 1rem;
-  }
-  
-  .hidden {
-    display: none;
-  }
-  
-  .player-bet {
-    margin-bottom: 1rem;
+  button:hover {
+    background-color: #fff8dc;
   }
   
