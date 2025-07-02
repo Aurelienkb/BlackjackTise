@@ -1,0 +1,31 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #063;
+    color: #fff;
+    text-align: center;
+    padding: 2rem;
+  }
+  
+  .container {
+    max-width: 800px;
+    margin: auto;
+    background-color: #124;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 0 10px #000;
+  }
+  
+  input, button {
+    font-size: 1rem;
+    margin: 0.5rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  .hidden {
+    display: none;
+  }
+  
+  .player-bet {
+    margin-bottom: 1rem;
+  }
+  
