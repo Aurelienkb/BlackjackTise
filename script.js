@@ -232,7 +232,8 @@ function dealInitialCards() {
             const card2 = deck.pop();
             playerData.dealerHand.push(card2);
             playerData.dealerScore = calculateHandValue(playerData.dealerHand);
-            updateDealerHandDisplay(false, true, 'second'); 
+            // MODIFIED: Do not animate the hidden second card for the dealer
+            updateDealerHandDisplay(false, false); 
             gameDisplay.innerHTML += `<p>Dealing second card to Dealer (hidden)...</p>`;
             gameDisplay.scrollTop = gameDisplay.scrollHeight;
 
@@ -242,25 +243,29 @@ function dealInitialCards() {
 
             // Check for initial blackjacks and then start player turns
             setTimeout(() => {
-                // Check if any player or dealer has a Blackjack on initial deal
-                let gameEndedByBlackjack = false;
+                let dealerHasBlackjack = (playerData.dealerHand.length === 2 && playerData.dealerScore === 21);
+                let anyPlayerHasBlackjack = false;
+
                 for (let player of playerData) {
                     if (player.hands[0].score === 21 && player.hands[0].hand.length === 2) { // Check for actual Blackjack
                         player.hands[0].isBlackjack = true;
                         gameDisplay.innerHTML += `<p><strong>${player.name}'s Hand 1 has Blackjack!</strong></p>`;
-                        gameEndedByBlackjack = true;
+                        anyPlayerHasBlackjack = true;
                     }
                 }
-                if (playerData.dealerHand.length === 2 && playerData.dealerScore === 21) {
-                    gameDisplay.innerHTML += `<p><strong>Dealer has Blackjack!</strong></p>`;
-                    gameEndedByBlackjack = true;
-                    updateDealerHandDisplay(true); // Reveal dealer's hand immediately if they have Blackjack (no animation needed here)
-                }
 
-                if (gameEndedByBlackjack) {
-                    determineWinners(); // Go straight to results if there's an immediate Blackjack
-                } else {
-                    startPlayerTurn(0, 0); // Start with the first player's first hand
+                if (dealerHasBlackjack) {
+                    gameDisplay.innerHTML += `<p><strong>Dealer has Blackjack!</strong></p>`;
+                    updateDealerHandDisplay(true); // Reveal dealer's hand immediately
+                    // ADDED: Delay before determining winners to allow user to see revealed hand
+                    setTimeout(() => {
+                        determineWinners();
+                    }, 2000); // 2-second delay
+                } else if (anyPlayerHasBlackjack) {
+                    determineWinners(); // Go straight to results if there's an immediate player Blackjack
+                }
+                else {
+                    startPlayerTurn(0, 0); // Start with the first player's first hand if no initial blackjacks
                 }
             }, 500); // Small delay before determining blackjacks or starting turns
         }, 1500); // 1.5 second delay for dealer's second card
@@ -755,6 +760,3 @@ function resetGame() {
     document.getElementById("playerForm").style.display = "none"; // Hide form
     document.getElementById("gameContainer").style.display = "none";
 }
-
-// Initial setup call (when the page loads)
-// No need to call initializeGame here, it's called after player setup.
