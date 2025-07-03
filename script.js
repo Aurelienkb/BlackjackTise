@@ -7,7 +7,7 @@ let currentPlayerIndex = 0;
 function askNamesAndBets() {
   const count = parseInt(document.getElementById("playerCount").value);
   if (isNaN(count) || count < 1 || count > 10) {
-    alert("Please enter a number of players between 1 and 10.");
+    //alert("Please enter a number of players between 1 and 10.");
     return;
   }
 
@@ -281,7 +281,7 @@ function hit() {
     currentPlayer.isBust = true;
     gameDisplay.innerHTML += `<p><strong>${currentPlayer.name} busts with a score of ${currentPlayer.score}!</strong></p>`;
     gameDisplay.scrollTop = gameDisplay.scrollHeight;
-    alert(`${currentPlayer.name} busts with a score of ${currentPlayer.score}!`); // Still use alert for immediate feedback
+    //alert(`${currentPlayer.name} busts with a score of ${currentPlayer.score}!`); // Still use alert for immediate feedback
     startPlayerTurn(currentPlayerIndex + 1);
   }
 }
@@ -292,7 +292,7 @@ function stand() {
   let gameDisplay = document.getElementById("gameDisplay");
   gameDisplay.innerHTML += `<p><strong>${currentPlayer.name} stands with a score of ${currentPlayer.score}.</strong></p>`;
   gameDisplay.scrollTop = gameDisplay.scrollHeight;
-  alert(`${currentPlayer.name} stands with a score of ${currentPlayer.score}.`); // Still use alert for immediate feedback
+  //alert(`${currentPlayer.name} stands with a score of ${currentPlayer.score}.`); // Still use alert for immediate feedback
   startPlayerTurn(currentPlayerIndex + 1);
 }
 
