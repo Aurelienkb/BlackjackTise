@@ -213,3 +213,18 @@ form button {
     font-size: 30px;
   }
 }
+
+@keyframes slide-in-bottom {
+  0% {
+    transform: translateY(100px) scale(0.5);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.new-card-dealt {
+  animation: slide-in-bottom 0.5s ease-out forwards;
+}

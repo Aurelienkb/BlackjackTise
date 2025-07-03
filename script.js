@@ -184,7 +184,8 @@ function dealInitialCards() {
             playerContainerDiv.id = `player-${dealPlayerIndex}-hand-container`;
             handsDisplay.appendChild(playerContainerDiv);
         }
-        updatePlayerDisplay(dealPlayerIndex); // Update player's hand display
+        // MODIFIED: Pass the explicit player and hand index for animation
+        updatePlayerDisplay(dealPlayerIndex, { playerIdx: dealPlayerIndex, handIdx: 0 }); 
 
         gameDisplay.innerHTML += `<p>Dealing card to ${currentPlayer.name}...</p>`;
         gameDisplay.scrollTop = gameDisplay.scrollHeight;
@@ -222,7 +223,7 @@ function dealInitialCards() {
         const card1 = deck.pop();
         playerData.dealerHand.push(card1);
         playerData.dealerScore = calculateHandValue(playerData.dealerHand);
-        updateDealerHandDisplay(false); // First card visible, second hidden
+        updateDealerHandDisplay(false, true, 'first'); 
         gameDisplay.innerHTML += `<p>Dealing first card to Dealer...</p>`;
         gameDisplay.scrollTop = gameDisplay.scrollHeight;
 
@@ -231,7 +232,7 @@ function dealInitialCards() {
             const card2 = deck.pop();
             playerData.dealerHand.push(card2);
             playerData.dealerScore = calculateHandValue(playerData.dealerHand);
-            updateDealerHandDisplay(false); // Still show second card as hidden
+            updateDealerHandDisplay(false, true, 'second'); 
             gameDisplay.innerHTML += `<p>Dealing second card to Dealer (hidden)...</p>`;
             gameDisplay.scrollTop = gameDisplay.scrollHeight;
 
@@ -244,7 +245,8 @@ function dealInitialCards() {
                 // Check if any player or dealer has a Blackjack on initial deal
                 let gameEndedByBlackjack = false;
                 for (let player of playerData) {
-                    if (player.hands[0].isBlackjack) {
+                    if (player.hands[0].score === 21 && player.hands[0].hand.length === 2) { // Check for actual Blackjack
+                        player.hands[0].isBlackjack = true;
                         gameDisplay.innerHTML += `<p><strong>${player.name}'s Hand 1 has Blackjack!</strong></p>`;
                         gameEndedByBlackjack = true;
                     }
@@ -252,7 +254,7 @@ function dealInitialCards() {
                 if (playerData.dealerHand.length === 2 && playerData.dealerScore === 21) {
                     gameDisplay.innerHTML += `<p><strong>Dealer has Blackjack!</strong></p>`;
                     gameEndedByBlackjack = true;
-                    updateDealerHandDisplay(true); // Reveal dealer's hand immediately if they have Blackjack
+                    updateDealerHandDisplay(true); // Reveal dealer's hand immediately if they have Blackjack (no animation needed here)
                 }
 
                 if (gameEndedByBlackjack) {
@@ -269,39 +271,62 @@ function dealInitialCards() {
   dealPlayerCardWithDelay();
 }
 
-
-function updatePlayerDisplay(playerIndex) {
-    const player = playerData[playerIndex];
-    let playerContainerDiv = document.getElementById(`player-${playerIndex}-hand-container`);
+// MODIFIED: updatePlayerDisplay to take animateCardConfig for precise animation control
+function updatePlayerDisplay(playerIndexToUpdate, animateCardConfig = null) { 
+    const player = playerData[playerIndexToUpdate];
+    let playerContainerDiv = document.getElementById(`player-${playerIndexToUpdate}-hand-container`);
 
     if (!playerContainerDiv) {
         playerContainerDiv = document.createElement('div');
-        playerContainerDiv.id = `player-${playerIndex}-hand-container`;
+        playerContainerDiv.id = `player-${playerIndexToUpdate}-hand-container`;
         document.getElementById("handsDisplay").appendChild(playerContainerDiv);
     }
-    // Clear previous hands HTML for this player to redraw all hands correctly
-    playerContainerDiv.innerHTML = `<h2>${player.name}'s Hands (Total Sips: ${player.sips})</h2>`;
+
+    let playerHandsHTML = `<h2>${player.name}'s Hands (Total Sips: ${player.sips})</h2>`;
 
     player.hands.forEach((hand, handIdx) => {
         const cardsHTML = hand.hand.map(card => createCardHTML(card)).join('');
-        const isCurrentHand = (playerIndex === currentPlayerIndex && handIdx === currentHandIndex);
+        const isCurrentHand = (playerIndexToUpdate === currentPlayerIndex && handIdx === currentHandIndex);
         const handStatus = hand.isBust ? 'BUST!' : hand.hasStood ? 'STOOD' : hand.isBlackjack ? 'BLACKJACK!' : '';
         const handScoreDisplay = hand.score > 0 ? `(Score: ${hand.score})` : '';
 
-        playerContainerDiv.innerHTML += `
-            <div id="player-${playerIndex}-hand-${handIdx}-display" class="player-hand-container" style="${isCurrentHand ? 'border-color: #d4af37; box-shadow: 0 0 15px #d4af37;' : ''}">
-                <h3 style="${isCurrentHand ? 'color: #d4af37; text-shadow: 0 0 10px #d4af37;' : ''}">Hand ${handIdx + 1} ${handScoreDisplay} ${handStatus} (Bet: ${hand.bet})</h3>
+        // Construct the HTML for the hand
+        playerHandsHTML += `
+            <div id="player-${playerIndexToUpdate}-hand-${handIdx}-display" class="player-hand-container" style="${isCurrentHand ? 'border-color: #d4af37; box-shadow: 0 0 15px #d4af37;' : ''}">
+                <h3 style="${isCurrentHand ? 'color: #d4af37; text-shadow: 0 0 10px #d4af37;' : ''}">Hand ${handIdx + 1} ${handScoreDisplay} (Bet: ${hand.bet}) ${handStatus}</h3>
                 <div class="cards-container">${cardsHTML}</div>
             </div>
         `;
     });
+
+    playerContainerDiv.innerHTML = playerHandsHTML; // Set innerHTML once after building all hands
+
+    // Animate only the specified card, if requested
+    if (animateCardConfig &&
+        animateCardConfig.playerIdx === playerIndexToUpdate &&
+        player.hands.length > animateCardConfig.handIdx) {
+
+        const targetHandDisplay = document.getElementById(`player-${animateCardConfig.playerIdx}-hand-${animateCardConfig.handIdx}-display`);
+        if (targetHandDisplay) {
+            const cardsInTargetHand = targetHandDisplay.querySelectorAll('.card');
+            // The card to animate is always the last card in the hand's DOM structure
+            if (cardsInTargetHand.length > 0) {
+                const lastCard = cardsInTargetHand[cardsInTargetHand.length - 1];
+                lastCard.classList.remove('new-card-dealt');
+                void lastCard.offsetWidth; // Trigger reflow
+                lastCard.classList.add('new-card-dealt');
+            }
+        }
+    }
 }
 
 
-function updateDealerHandDisplay(revealAll = false) {
+function updateDealerHandDisplay(revealAll = false, animateNewCard = false, cardDealtType = '') { 
   let dealerHandDiv = document.getElementById("dealer-hand-display");
   if (dealerHandDiv) {
     let cardsHTML;
+    const currentHandLength = playerData.dealerHand.length;
+
     if (revealAll) {
       cardsHTML = playerData.dealerHand.map(card => createCardHTML(card)).join('');
       dealerHandDiv.innerHTML = `
@@ -309,21 +334,48 @@ function updateDealerHandDisplay(revealAll = false) {
         <div class="cards-container">${cardsHTML}</div>
       `;
     } else {
-      // If not revealing all, and we have at least one card, show the first card and then a hidden card
-      // This handles the case where only one card is dealt so far
-      if (playerData.dealerHand.length > 0) {
-          cardsHTML = createCardHTML(playerData.dealerHand[0]);
-          // Add hidden card only if it's the initial two cards
-          if (playerData.dealerHand.length === 1 || playerData.dealerHand.length === 2) {
-              cardsHTML += createHiddenCardHTML();
+      let displayedCards = [];
+      if (currentHandLength > 0) {
+          displayedCards.push(createCardHTML(playerData.dealerHand[0])); // Dealer's first card always visible
+          // Only add a hidden card placeholder if there's a second card in the actual hand
+          if (currentHandLength >= 1) { 
+              displayedCards.push(createHiddenCardHTML()); 
           }
-      } else {
-          cardsHTML = ''; // No cards dealt yet
       }
+      cardsHTML = displayedCards.join('');
+
       dealerHandDiv.innerHTML = `
         <h3>Dealer's Hand</h3>
         <div class="cards-container">${cardsHTML}</div>
       `;
+    }
+    
+    if (animateNewCard) {
+        let cardToAnimate = null;
+
+        if (revealAll) { // When dealer's full hand is revealed (and new cards are added during hits)
+            const allVisibleCards = dealerHandDiv.querySelectorAll('.card');
+            if (allVisibleCards.length > 0) {
+                cardToAnimate = allVisibleCards[allVisibleCards.length - 1]; // Animate the last visible card
+            }
+        } else { // During initial deal (first card visible, second hidden)
+            if (cardDealtType === 'first') {
+                // Animate the first card (which is visible)
+                cardToAnimate = dealerHandDiv.querySelector('.card:not(.hidden)');
+            } else if (cardDealtType === 'second') {
+                // Animate the hidden card (which is the second one in the DOM, after the first visible)
+                const allCards = dealerHandDiv.querySelectorAll('.card');
+                if (allCards.length >= 2) { // Ensure both first and hidden cards are present
+                    cardToAnimate = allCards[1]; // The hidden card is always the second element
+                }
+            }
+        }
+
+        if (cardToAnimate) {
+            cardToAnimate.classList.remove('new-card-dealt'); 
+            void cardToAnimate.offsetWidth; // Trigger reflow
+            cardToAnimate.classList.add('new-card-dealt');
+        }
     }
   }
 }
@@ -373,9 +425,9 @@ function startPlayerTurn(playerIndex, handIndex = 0) {
   gameDisplay.innerHTML += `<p><strong>It's ${currentPlayer.name}'s turn for Hand ${currentHandIndex + 1}!</strong></p>`;
   gameDisplay.scrollTop = gameDisplay.scrollHeight;
   
-  // Call updatePlayerDisplay for the current player to highlight the active hand
+  // Call updatePlayerDisplay for the current player to highlight the active hand (no animation here)
   updatePlayerDisplay(currentPlayerIndex);
-  // Also update all other players' displays to ensure consistent view
+  // Also update all other players' displays to ensure consistent view (no animation here)
   for (let i = 0; i < playerData.length; i++) {
     if (i !== currentPlayerIndex) {
       updatePlayerDisplay(i);
@@ -406,7 +458,8 @@ function hit() {
   gameDisplay.innerHTML += `<p>${currentPlayer.name}'s Hand ${currentHandIndex + 1} hits and gets: ${newCard.rank} of ${newCard.suit}</p>`;
   gameDisplay.scrollTop = gameDisplay.scrollHeight;
 
-  updatePlayerDisplay(currentPlayerIndex); // Update display with new card and score
+  // MODIFIED: Pass config for animation
+  updatePlayerDisplay(currentPlayerIndex, { playerIdx: currentPlayerIndex, handIdx: currentHandIndex }); 
 
   if (currentHand.score > 21) {
     currentHand.isBust = true;
@@ -438,7 +491,7 @@ function doubleDown() {
     let gameDisplay = document.getElementById("gameDisplay");
 
     if (currentHand.hand.length !== 2) {
-        gameDisplay.innerHTML += `<p style="color:red;">Can only double down on your first two cards!</p>`;
+        gameDisplay.innerHTML += `<p style="color:red;">You can only double down on your initial two cards!</p>`;
         gameDisplay.scrollTop = gameDisplay.scrollHeight;
         return;
     }
@@ -455,7 +508,8 @@ function doubleDown() {
     gameDisplay.innerHTML += `<p>${currentPlayer.name}'s Hand ${currentHandIndex + 1} gets: ${newCard.rank} of ${newCard.suit}</p>`;
     gameDisplay.scrollTop = gameDisplay.scrollHeight;
 
-    updatePlayerDisplay(currentPlayerIndex); // Update display with new card and score
+    // MODIFIED: Pass config for animation
+    updatePlayerDisplay(currentPlayerIndex, { playerIdx: currentPlayerIndex, handIdx: currentHandIndex }); 
 
     // Automatically stand (or bust) after the single hit
     if (currentHand.score > 21) {
@@ -509,14 +563,19 @@ function split() {
 
 
     let gameDisplay = document.getElementById("gameDisplay");
-    gameDisplay.innerHTML += `<p><strong>${currentPlayer.name} splits Hand ${currentHandIndex + 1}! Two new hands created, each with a bet of ${originalBet}.</strong></p தொடர்பானစာ။`;
+    gameDisplay.innerHTML += `<p><strong>${currentPlayer.name} splits Hand ${currentHandIndex + 1}! Two new hands created, each with a bet of ${originalBet}.</strong></p>`;
     gameDisplay.scrollTop = gameDisplay.scrollHeight;
 
-    updatePlayerDisplay(currentPlayerIndex); // Update the display for the player to show both new hands
+    // Animate the new card dealt to the first split hand
+    updatePlayerDisplay(currentPlayerIndex, { playerIdx: currentPlayerIndex, handIdx: currentHandIndex });
+    
+    // Animate the new card dealt to the second split hand with a slight delay
+    setTimeout(() => {
+        updatePlayerDisplay(currentPlayerIndex, { playerIdx: currentPlayerIndex, handIdx: currentHandIndex + 1 });
+    }, 100); 
 
     // Since the current hand has changed and a new one was inserted,
     // we need to ensure the turn continues for the *first* of the split hands.
-    // The `startPlayerTurn` will naturally process `currentHandIndex` and then `currentHandIndex + 1`.
     startPlayerTurn(currentPlayerIndex, currentHandIndex);
 }
 
@@ -529,7 +588,7 @@ function dealerTurn() {
   gameDisplay.innerHTML += "<h2>Dealer's Turn:</h2>";
   gameDisplay.scrollTop = gameDisplay.scrollHeight;
 
-  updateDealerHandDisplay(true); // Reveal dealer's hidden card
+  updateDealerHandDisplay(true); // Reveal dealer's hidden card (no animation, just revealing)
   gameDisplay.innerHTML += `<p>Dealer's initial hand revealed: ${playerData.dealerHand.map(card => `${card.rank} of ${card.suit}`).join(', ')} (Score: ${playerData.dealerScore})</p>`;
   gameDisplay.scrollTop = gameDisplay.scrollHeight;
 
@@ -543,114 +602,93 @@ function dealerTurn() {
         gameDisplay.innerHTML += `<p>Dealer hits and gets: ${newCard.rank} of ${newCard.suit}</p>`;
         gameDisplay.innerHTML += `<p>Dealer's New Score: ${playerData.dealerScore}</p>`;
         gameDisplay.scrollTop = gameDisplay.scrollHeight;
-        updateDealerHandDisplay(true); // Update dealer's hand display
-        dealerHitsWithDelay(); // Call itself for the next hit
-      }, 1000); // 1000 milliseconds = 1 second delay
+        updateDealerHandDisplay(true, true); // Animate the new card
+
+        if (playerData.dealerScore > 21) {
+          gameDisplay.innerHTML += `<p><strong>Dealer busts with a score of ${playerData.dealerScore}!</strong></p>`;
+          gameDisplay.scrollTop = gameDisplay.scrollHeight;
+          determineWinners();
+        } else if (playerData.dealerScore >= 17) {
+          gameDisplay.innerHTML += `<p><strong>Dealer stands with a score of ${playerData.dealerScore}.</strong></p>`;
+          gameDisplay.scrollTop = gameDisplay.scrollHeight;
+          determineWinners();
+        } else {
+          dealerHitsWithDelay(); // Dealer hits again if score is still < 17
+        }
+      }, 2000); // 2 second delay for each dealer hit
     } else {
-      // Once dealer stands or busts
-      if (playerData.dealerScore > 21) {
-        gameDisplay.innerHTML += `<p><strong>Dealer busts with a score of ${playerData.dealerScore}!</strong></p>`;
-      } else {
-        gameDisplay.innerHTML += `<p><strong>Dealer stands with a score of ${playerData.dealerScore}.</strong></p>`;
-      }
+      gameDisplay.innerHTML += `<p><strong>Dealer stands with a score of ${playerData.dealerScore}.</strong></p>`;
       gameDisplay.scrollTop = gameDisplay.scrollHeight;
       determineWinners();
     }
   }
 
-  dealerHitsWithDelay(); // Start the delayed hitting process
+  dealerHitsWithDelay();
 }
+
 
 function determineWinners() {
   let gameDisplay = document.getElementById("gameDisplay");
-  gameDisplay.innerHTML += "<h2>Results:</h2>";
+  gameDisplay.innerHTML += "<h2>--- Round Results ---</h2>";
   gameDisplay.scrollTop = gameDisplay.scrollHeight;
 
-  const dealerFinalScore = playerData.dealerScore;
-  const dealerBusted = dealerFinalScore > 21;
+  const dealerScore = playerData.dealerScore;
+  const dealerBust = dealerScore > 21;
 
-  for (let player of playerData) {
-    gameDisplay.innerHTML += `<p>--- ${player.name}'s Results ---</p>`;
-    let playerTotalSipsChange = 0; // Track sips change for all hands of a player
-
+  for (let i = 0; i < playerData.length; i++) {
+    const player = playerData[i];
     player.hands.forEach((hand, handIdx) => {
-        let resultMessage = `${player.name}'s Hand ${handIdx + 1} (Bet: ${hand.bet}): `;
-        let sipsChange = 0;
+      let resultMessage = `${player.name}'s Hand ${handIdx + 1} (Score: ${hand.score}, Bet: ${hand.bet}): `;
+      let sipsChange = 0;
 
-        if (hand.isBust) {
-            resultMessage += `Busted! Loses ${hand.bet} sips.`;
-            sipsChange -= hand.bet;
-        } else if (hand.isBlackjack && !dealerBusted && playerData.dealerHand.length === 2 && playerData.dealerScore !== 21) {
-            // Player Blackjack vs. Dealer No Blackjack
-            resultMessage += `BLACKJACK! Wins ${hand.bet * 1.5} sips.`; // Pays 1.5 times bet
-            sipsChange += hand.bet * 1.5;
-        } else if (hand.isBlackjack && playerData.dealerHand.length === 2 && playerData.dealerScore === 21) {
-            // Player Blackjack vs. Dealer Blackjack (Push)
-            resultMessage += `BLACKJACK! Pushes with Dealer. No sips gained or lost.`;
-            sipsChange += 0;
-        } else if (dealerBusted || hand.score > dealerFinalScore) {
-            resultMessage += `Wins! Gets ${hand.bet} sips.`;
-            sipsChange += hand.bet;
-        } else if (hand.score < dealerFinalScore) {
-            resultMessage += `Loses! Loses ${hand.bet} sips.`;
-            sipsChange -= hand.bet;
-        } else { // Push
-            resultMessage += `Pushes! No sips gained or lost.`;
-            sipsChange += 0;
+      if (hand.isBust) {
+        resultMessage += `Bust! Loses ${hand.bet} sips.`;
+        sipsChange = -hand.bet;
+      } else if (hand.isBlackjack) {
+        if (dealerScore === 21 && playerData.dealerHand.length === 2) { // Dealer also has Blackjack
+          resultMessage += `Push (Blackjack)! Returns ${hand.bet} sips.`;
+          sipsChange = 0; // Bet is returned
+        } else {
+          // Blackjack pays 1.5 times the bet
+          sipsChange = hand.bet * 1.5;
+          resultMessage += `Blackjack! Wins ${sipsChange} sips.`;
         }
-        player.sips += sipsChange; // Apply sips change to player's total
-        gameDisplay.innerHTML += `<p>${resultMessage}</p>`;
+      } else if (dealerBust) {
+        resultMessage += `Dealer busts! Wins ${hand.bet} sips.`;
+        sipsChange = hand.bet;
+      } else if (hand.score > dealerScore) {
+        resultMessage += `Wins! Wins ${hand.bet} sips.`;
+        sipsChange = hand.bet;
+      } else if (hand.score < dealerScore) {
+        resultMessage += `Loses! Loses ${hand.bet} sips.`;
+        sipsChange = -hand.bet;
+      } else { // Push
+        resultMessage += `Push! Returns ${hand.bet} sips.`;
+        sipsChange = 0; // Bet is returned
+      }
+      player.sips += sipsChange;
+      gameDisplay.innerHTML += `<p>${resultMessage} (Current Sips: ${player.sips})</p>`;
+      gameDisplay.scrollTop = gameDisplay.scrollHeight;
     });
-    gameDisplay.innerHTML += `<p><strong>${player.name}'s Total Sips: ${player.sips}</strong></p>`;
-    gameDisplay.scrollTop = gameDisplay.scrollHeight;
   }
 
-  gameDisplay.innerHTML += `<button onclick="resetGame()">Play Again (New Players)</button>`;
-  gameDisplay.innerHTML += `<button onclick="askForNewBets()">Play Again (Same Players)</button>`; // New button
+  gameDisplay.innerHTML += `<button onclick="askForNewBets()">Play Another Round</button>`;
   gameDisplay.scrollTop = gameDisplay.scrollHeight;
-}
-
-function resetGame() {
-    document.getElementById("gameDisplay").innerHTML = "";
-    document.getElementById("handsDisplay").innerHTML = ""; // Clear hands display
-    document.getElementById("playerActions").innerHTML = "";
-
-    playerData = []; // Clear all player data for new players
-    playerData.dealerHand = [];
-    playerData.dealerScore = 0;
-    currentPlayerIndex = 0;
-    currentHandIndex = 0;
-
-    document.getElementById("setup").style.display = "block";
-    document.getElementById("gameContainer").style.display = "none";
 }
 
 function askForNewBets() {
-    document.getElementById("gameDisplay").innerHTML = "";
-    document.getElementById("handsDisplay").innerHTML = "";
-    document.getElementById("playerActions").innerHTML = "";
-
     const form = document.getElementById("playerForm");
-    form.innerHTML = ''; // Clear previous input
+    form.innerHTML = ''; // Clear any previous input
 
-    for (let i = 0; i < playerData.length; i++) {
-        const player = playerData[i];
+    playerData.forEach((player, i) => {
         form.innerHTML += `
             <div style="margin-bottom: 10px;">
-                <label>Player ${player.name} (Current Sips: ${player.sips}) - New Bet:</label><br />
+                <label>${player.name}'s Current Sips: ${player.sips}</label><br />
+                <label>Bet for next round:</label><br />
                 <input type="number" name="bet${i}" min="1" required placeholder="Sips" value="${player.hands[0].bet}" />
             </div>
         `;
-        // Reset player specific game state for the *next* round, but keep sips balance
-        // Crucially, reset hands array to a single, empty hand
-        player.hands = [{ hand: [], score: 0, bet: 0, isBust: false, hasStood: false, isBlackjack: false }];
-    }
-    // Reset dealer state
-    playerData.dealerHand = [];
-    playerData.dealerScore = 0;
-    currentPlayerIndex = 0;
-    currentHandIndex = 0;
-
+    });
 
     form.innerHTML += `<button type="submit">Start Next Round!</button>`;
     form.onsubmit = submitNewBets;
@@ -667,11 +705,16 @@ function submitNewBets(event) {
     for (let i = 0; i < playerData.length; i++) {
         const newBet = parseInt(formData.get(`bet${i}`));
         if (newBet) {
-            playerData[i].hands[0].bet = newBet; // Update the bet for the first hand
+            // Reset player hands and update bet for the new round
+            playerData[i].hands = [{ hand: [], score: 0, bet: newBet, isBust: false, hasStood: false, isBlackjack: false }];
         }
     }
 
-    console.log("Players with new bets:", playerData);
+    // Reset dealer's hand
+    playerData.dealerHand = [];
+    playerData.dealerScore = 0;
+
+    console.log("Players with new bets for next round:", playerData);
 
     document.getElementById("playerForm").style.display = "none";
     document.getElementById("gameContainer").style.display = "block";
@@ -687,13 +730,31 @@ function initializeGame() {
     console.log("Player data after deal:", playerData);
     
     // After dealing initial cards, ensure all player hands are updated in the display
-    // This is now handled within dealInitialCards's delayed process
-    // for (let i = 0; i < playerData.length; i++) {
-    //   updatePlayerDisplay(i);
-    // }
+    // The dealInitialCards now handles initial display and animation.
+    // This loop is for ensuring consistent state, but won't trigger new animations.
+    for (let i = 0; i < playerData.length; i++) {
+      updatePlayerDisplay(i); // Use the new updatePlayerDisplay
+    }
     
-    // Starting the turn is also handled after dealing completes
-    // setTimeout(() => {
-    //     startPlayerTurn(0, 0);
-    // }, 100);
+    // Add a small delay to ensure DOM is updated before starting player turns
+    // The startPlayerTurn is called within dealInitialCards
 }
+
+function resetGame() {
+    document.getElementById("gameDisplay").innerHTML = "";
+    document.getElementById("handsDisplay").innerHTML = ""; // Clear hands display
+    document.getElementById("playerActions").innerHTML = "";
+
+    playerData = []; // Clear all player data to start fresh
+    playerData.dealerHand = [];
+    playerData.dealerScore = 0;
+    currentPlayerIndex = 0;
+    currentHandIndex = 0; // Reset hand index too
+
+    document.getElementById("setup").style.display = "block";
+    document.getElementById("playerForm").style.display = "none"; // Hide form
+    document.getElementById("gameContainer").style.display = "none";
+}
+
+// Initial setup call (when the page loads)
+// No need to call initializeGame here, it's called after player setup.
