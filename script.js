@@ -306,25 +306,32 @@ function dealerTurn() {
   gameDisplay.innerHTML += `<p>Dealer's initial hand revealed: ${playerData.dealerHand.map(card => `${card.rank} of ${card.suit}`).join(', ')} (Score: ${playerData.dealerScore})</p>`;
   gameDisplay.scrollTop = gameDisplay.scrollHeight;
 
-
-  while (playerData.dealerScore < 17) {
-    const newCard = deck.pop();
-    playerData.dealerHand.push(newCard);
-    playerData.dealerScore = calculateHandValue(playerData.dealerHand);
-    gameDisplay.innerHTML += `<p>Dealer hits and gets: ${newCard.rank} of ${newCard.suit}</p>`;
-    gameDisplay.innerHTML += `<p>Dealer's New Score: ${playerData.dealerScore}</p>`;
-    gameDisplay.scrollTop = gameDisplay.scrollHeight;
-    updateDealerHandDisplay(true); // Update dealer's hand display
+  // Use a recursive function with setTimeout for delayed hits
+  function dealerHitsWithDelay() {
+    if (playerData.dealerScore < 17) {
+      setTimeout(() => {
+        const newCard = deck.pop();
+        playerData.dealerHand.push(newCard);
+        playerData.dealerScore = calculateHandValue(playerData.dealerHand);
+        gameDisplay.innerHTML += `<p>Dealer hits and gets: ${newCard.rank} of ${newCard.suit}</p>`;
+        gameDisplay.innerHTML += `<p>Dealer's New Score: ${playerData.dealerScore}</p>`;
+        gameDisplay.scrollTop = gameDisplay.scrollHeight;
+        updateDealerHandDisplay(true); // Update dealer's hand display
+        dealerHitsWithDelay(); // Call itself for the next hit
+      }, 1500); // 1000 milliseconds = 1 second delay
+    } else {
+      // Once dealer stands or busts
+      if (playerData.dealerScore > 21) {
+        gameDisplay.innerHTML += `<p><strong>Dealer busts with a score of ${playerData.dealerScore}!</strong></p>`;
+      } else {
+        gameDisplay.innerHTML += `<p><strong>Dealer stands with a score of ${playerData.dealerScore}.</strong></p>`;
+      }
+      gameDisplay.scrollTop = gameDisplay.scrollHeight;
+      determineWinners();
+    }
   }
 
-  if (playerData.dealerScore > 21) {
-    gameDisplay.innerHTML += `<p><strong>Dealer busts with a score of ${playerData.dealerScore}!</strong></p>`;
-  } else {
-    gameDisplay.innerHTML += `<p><strong>Dealer stands with a score of ${playerData.dealerScore}.</strong></p>`;
-  }
-  gameDisplay.scrollTop = gameDisplay.scrollHeight;
-
-  determineWinners();
+  dealerHitsWithDelay(); // Start the delayed hitting process
 }
 
 function determineWinners() {
