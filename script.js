@@ -244,32 +244,31 @@ function dealInitialCards() {
             // Check for initial blackjacks and then start player turns
             setTimeout(() => {
                 let dealerHasBlackjack = (playerData.dealerHand.length === 2 && playerData.dealerScore === 21);
-                let anyPlayerHasBlackjack = false;
+                // No longer using anyPlayerHasBlackjack flag to determine if game ends
+                // Player blackjacks will be handled by skipping their turn.
 
                 for (let player of playerData) {
                     if (player.hands[0].score === 21 && player.hands[0].hand.length === 2) { // Check for actual Blackjack
                         player.hands[0].isBlackjack = true;
                         gameDisplay.innerHTML += `<p><strong>${player.name}'s Hand 1 has Blackjack!</strong></p>`;
-                        anyPlayerHasBlackjack = true;
                     }
                 }
 
                 if (dealerHasBlackjack) {
                     gameDisplay.innerHTML += `<p><strong>Dealer has Blackjack!</strong></p>`;
                     updateDealerHandDisplay(true); // Reveal dealer's hand immediately
-                    // ADDED: Delay before determining winners to allow user to see revealed hand
+                    // Delay before determining winners to allow user to see revealed hand
                     setTimeout(() => {
                         determineWinners();
-                    }, 2000); // 2-second delay
-                } else if (anyPlayerHasBlackjack) {
-                    determineWinners(); // Go straight to results if there's an immediate player Blackjack
-                }
-                else {
-                    startPlayerTurn(0, 0); // Start with the first player's first hand if no initial blackjacks
+                    }, 1500); 
+                } else {
+                    // If dealer does NOT have blackjack, proceed with player turns.
+                    // Players with blackjack will be skipped by startPlayerTurn/nextHandOrPlayerTurn.
+                    startPlayerTurn(0, 0); 
                 }
             }, 500); // Small delay before determining blackjacks or starting turns
         }, 1500); // 1.5 second delay for dealer's second card
-    }, 1500); // 1.5 second delay for dealer's first card
+    }, 500); // 1.5 second delay for dealer's first card
   }
 
   // Start the delayed dealing process for players
@@ -460,7 +459,7 @@ function hit() {
   currentHand.score = calculateHandValue(currentHand.hand);
 
   let gameDisplay = document.getElementById("gameDisplay");
-  gameDisplay.innerHTML += `<p>${currentPlayer.name}'s Hand ${currentHandIndex + 1} hits and gets: ${newCard.rank} of ${newCard.suit}</p>`;
+  gameDisplay.innerHTML += `<p>${currentPlayer.name}'s Hand ${currentHandIndex + 1} hits and gets: ${newCard.rank} of ${newCard.suit}</p桃花`;
   gameDisplay.scrollTop = gameDisplay.scrollHeight;
 
   // MODIFIED: Pass config for animation
@@ -620,7 +619,7 @@ function dealerTurn() {
         } else {
           dealerHitsWithDelay(); // Dealer hits again if score is still < 17
         }
-      }, 2000); // 2 second delay for each dealer hit
+      }, 1500); // 2 second delay for each dealer hit
     } else {
       gameDisplay.innerHTML += `<p><strong>Dealer stands with a score of ${playerData.dealerScore}.</strong></p>`;
       gameDisplay.scrollTop = gameDisplay.scrollHeight;
