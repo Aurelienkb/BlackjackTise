@@ -271,10 +271,12 @@ function startPlayerTurn(playerIndex, handIndex = 0) {
     <button onclick="stand()">Stand</button>
   `;
 
-  // Check for split option
-  // Can only split on the initial two cards and if they are of the same rank
-  // MODIFIED LINE: Changed `getCardValue(currentHand.hand[0]) === getCardValue(currentHand.hand[1])`
-  // to `currentHand.hand[0].rank === currentHand.hand[1].rank`
+  // Double Down option: Only available on the initial two cards
+  if (currentHand.hand.length === 2) {
+      playerActionsDiv.innerHTML += `<button onclick="doubleDown()">Double Down</button>`;
+  }
+
+  // Check for split option: Only available on the initial two cards of the same rank
   if (currentHand.hand.length === 2 && currentHand.hand[0].rank === currentHand.hand[1].rank && currentPlayer.hands.length < 4) { // Limit max hands for simplicity
       playerActionsDiv.innerHTML += `<button onclick="split()">Split</button>`;
   }
@@ -343,12 +345,48 @@ function stand() {
   nextHandOrPlayerTurn();
 }
 
+function doubleDown() {
+    const currentPlayer = playerData[currentPlayerIndex];
+    const currentHand = currentPlayer.hands[currentHandIndex];
+    let gameDisplay = document.getElementById("gameDisplay");
+
+    if (currentHand.hand.length !== 2) {
+        gameDisplay.innerHTML += `<p style="color:red;">Can only double down on your first two cards!</p>`;
+        gameDisplay.scrollTop = gameDisplay.scrollHeight;
+        return;
+    }
+
+    // Double the bet
+    currentHand.bet *= 2;
+    gameDisplay.innerHTML += `<p><strong>${currentPlayer.name}'s Hand ${currentHandIndex + 1} doubles down! New bet: ${currentHand.bet}.</strong></p>`;
+    gameDisplay.scrollTop = gameDisplay.scrollHeight;
+
+    // Hit one card
+    const newCard = deck.pop();
+    currentHand.hand.push(newCard);
+    currentHand.score = calculateHandValue(currentHand.hand);
+    gameDisplay.innerHTML += `<p>${currentPlayer.name}'s Hand ${currentHandIndex + 1} gets: ${newCard.rank} of ${newCard.suit}</p>`;
+    gameDisplay.scrollTop = gameDisplay.scrollHeight;
+
+    updatePlayerDisplay(currentPlayerIndex); // Update display with new card and score
+
+    // Automatically stand (or bust) after the single hit
+    if (currentHand.score > 21) {
+        currentHand.isBust = true;
+        gameDisplay.innerHTML += `<p><strong>${currentPlayer.name}'s Hand ${currentHandIndex + 1} busts with a score of ${currentHand.score} after doubling down!</strong></p>`;
+    } else {
+        currentHand.hasStood = true;
+        gameDisplay.innerHTML += `<p><strong>${currentPlayer.name}'s Hand ${currentHandIndex + 1} stands with a score of ${currentHand.score} after doubling down.</strong></p>`;
+    }
+    gameDisplay.scrollTop = gameDisplay.scrollHeight;
+    nextHandOrPlayerTurn(); // Move to the next hand/player
+}
+
+
 function split() {
     const currentPlayer = playerData[currentPlayerIndex];
     const currentHand = currentPlayer.hands[currentHandIndex];
 
-    // MODIFIED LINE: Changed `getCardValue(currentHand.hand[0]) !== getCardValue(currentHand.hand[1])`
-    // to `currentHand.hand[0].rank !== currentHand.hand[1].rank`
     if (currentHand.hand.length !== 2 || currentHand.hand[0].rank !== currentHand.hand[1].rank) {
         let gameDisplay = document.getElementById("gameDisplay");
         gameDisplay.innerHTML += `<p style="color:red;">Cannot split this hand! Cards must be of the exact same rank (e.g., K-K, J-J).</p>`;
