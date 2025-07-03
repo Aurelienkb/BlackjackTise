@@ -9,9 +9,24 @@
 <body>
   <div class="table-mat">
     <h1>♠️ Blackjack – Sips Edition 🍻</h1>
-    <p>How many players?</p>
-    <input type="number" id="playerCount" min="1" max="10" placeholder="e.g. 3" />
-    <button onclick="startGame()">Start Game</button>
+    
+    <div id="setup">
+      <p>How many players?</p>
+      <input type="number" id="playerCount" min="1" max="10" placeholder="e.g. 3" />
+      <button onclick="askNamesAndBets()">Start Game</button>
+    </div>
+
+    <form id="playerForm" style="display:none;"></form>
+
+    <div id="gameContainer" style="display:none;">
+        <div id="gameDisplay" style="height: 300px; overflow-y: auto; border: 1px solid #d4af37; padding: 10px; margin-top: 20px; text-align: left;">
+            </div> 
+
+        <div id="handsDisplay" style="margin-top: 20px;">
+            </div>
+
+        <div id="playerActions" style="margin-top: 20px;"></div>
+    </div>
   </div>
 
   <script src="script.js"></script>

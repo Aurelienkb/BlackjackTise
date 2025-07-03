@@ -43,3 +43,16 @@ body {
     background-color: #fff8dc;
   }
   
+  form input {
+    margin-top: 5px;
+    margin-bottom: 10px;
+    padding: 8px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: none;
+    width: 200px;
+  }
+  
+  form button {
+    margin-top: 10px;
+  }
