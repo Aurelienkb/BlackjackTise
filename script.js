@@ -7,7 +7,7 @@ let currentPlayerIndex = 0;
 function askNamesAndBets() {
   const count = parseInt(document.getElementById("playerCount").value);
   if (isNaN(count) || count < 1 || count > 10) {
-    //alert("Please enter a number of players between 1 and 10.");
+    alert("Please enter a number of players between 1 and 10.");
     return;
   }
 
@@ -281,7 +281,6 @@ function hit() {
     currentPlayer.isBust = true;
     gameDisplay.innerHTML += `<p><strong>${currentPlayer.name} busts with a score of ${currentPlayer.score}!</strong></p>`;
     gameDisplay.scrollTop = gameDisplay.scrollHeight;
-    //alert(`${currentPlayer.name} busts with a score of ${currentPlayer.score}!`); // Still use alert for immediate feedback
     startPlayerTurn(currentPlayerIndex + 1);
   }
 }
@@ -292,7 +291,6 @@ function stand() {
   let gameDisplay = document.getElementById("gameDisplay");
   gameDisplay.innerHTML += `<p><strong>${currentPlayer.name} stands with a score of ${currentPlayer.score}.</strong></p>`;
   gameDisplay.scrollTop = gameDisplay.scrollHeight;
-  //alert(`${currentPlayer.name} stands with a score of ${currentPlayer.score}.`); // Still use alert for immediate feedback
   startPlayerTurn(currentPlayerIndex + 1);
 }
 
@@ -355,7 +353,8 @@ function determineWinners() {
     gameDisplay.scrollTop = gameDisplay.scrollHeight;
   }
 
-  gameDisplay.innerHTML += `<button onclick="resetGame()">Play Again</button>`;
+  gameDisplay.innerHTML += `<button onclick="resetGame()">Play Again (New Players)</button>`;
+  gameDisplay.innerHTML += `<button onclick="askForNewBets()">Play Again (Same Players)</button>`; // New button
   gameDisplay.scrollTop = gameDisplay.scrollHeight;
 }
 
@@ -369,6 +368,7 @@ function resetGame() {
         player.score = 0;
         player.isBust = false;
         player.hasStood = false;
+        // Do not reset player.sips if you want to carry over balances
     }
     playerData.dealerHand = [];
     playerData.dealerScore = 0;
@@ -377,6 +377,60 @@ function resetGame() {
     document.getElementById("setup").style.display = "block";
     document.getElementById("gameContainer").style.display = "none";
 }
+
+function askForNewBets() {
+    document.getElementById("gameDisplay").innerHTML = "";
+    document.getElementById("handsDisplay").innerHTML = "";
+    document.getElementById("playerActions").innerHTML = "";
+
+    const form = document.getElementById("playerForm");
+    form.innerHTML = ''; // Clear previous input
+
+    for (let i = 0; i < playerData.length; i++) {
+        form.innerHTML += `
+            <div style="margin-bottom: 10px;">
+                <label>Player ${playerData[i].name} (Current Sips: ${playerData[i].sips}) - New Bet:</label><br />
+                <input type="number" name="bet${i}" min="1" required placeholder="Sips" value="${playerData[i].bet}" />
+            </div>
+        `;
+        // Reset player specific game state, but keep name and sips balance
+        playerData[i].hand = [];
+        playerData[i].score = 0;
+        playerData[i].isBust = false;
+        playerData[i].hasStood = false;
+    }
+    // Reset dealer state
+    playerData.dealerHand = [];
+    playerData.dealerScore = 0;
+    currentPlayerIndex = 0;
+
+
+    form.innerHTML += `<button type="submit">Start Next Round!</button>`;
+    form.onsubmit = submitNewBets;
+
+    document.getElementById("playerForm").style.display = "block";
+    document.getElementById("gameContainer").style.display = "none";
+}
+
+function submitNewBets(event) {
+    event.preventDefault();
+    const form = document.getElementById("playerForm");
+    const formData = new FormData(form);
+
+    for (let i = 0; i < playerData.length; i++) {
+        const newBet = parseInt(formData.get(`bet${i}`));
+        if (newBet) {
+            playerData[i].bet = newBet;
+        }
+    }
+
+    console.log("Players with new bets:", playerData);
+
+    document.getElementById("playerForm").style.display = "none";
+    document.getElementById("gameContainer").style.display = "block";
+    initializeGame();
+}
+
 
 function initializeGame() {
     document.getElementById("gameDisplay").innerHTML = ""; // Clear previous game log
