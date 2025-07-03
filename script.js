@@ -149,51 +149,120 @@ function calculateHandValue(hand) {
 
 function dealInitialCards() {
   createDeck();
+  let handsDisplay = document.getElementById("handsDisplay");
+  handsDisplay.innerHTML = ''; // Clear existing hands display
 
-  for (let player of playerData) {
-    // Each player starts with one hand
-    let hand = player.hands[0];
-    hand.hand = [deck.pop(), deck.pop()];
-    hand.score = calculateHandValue(hand.hand);
-    if (hand.score === 21 && hand.hand.length === 2) {
-        hand.isBlackjack = true;
+  let dealPlayerIndex = 0;
+  let dealCardPerPlayerCount = 0; // To ensure each player gets 2 cards, one by one
+  const numPlayers = playerData.length;
+  const gameDisplay = document.getElementById("gameDisplay");
+
+  gameDisplay.innerHTML += "<h2>Initial Deal Starting...</h2>";
+  gameDisplay.scrollTop = gameDisplay.scrollHeight;
+
+  // Function to deal one card to a player, then schedule the next
+  function dealPlayerCardWithDelay() {
+    if (dealCardPerPlayerCount < 2) { // Each player gets 2 cards
+      if (dealPlayerIndex < numPlayers) {
+        const currentPlayer = playerData[dealPlayerIndex];
+        const currentHand = currentPlayer.hands[0]; // Always deal to the first hand initially
+        const newCard = deck.pop();
+        currentHand.hand.push(newCard);
+        currentHand.score = calculateHandValue(currentHand.hand);
+
+        // Ensure player container exists and update it
+        let playerContainerDiv = document.getElementById(`player-${dealPlayerIndex}-hand-container`);
+        if (!playerContainerDiv) {
+            playerContainerDiv = document.createElement('div');
+            playerContainerDiv.id = `player-${dealPlayerIndex}-hand-container`;
+            handsDisplay.appendChild(playerContainerDiv);
+        }
+        updatePlayerDisplay(dealPlayerIndex); // Update player's hand display
+
+        gameDisplay.innerHTML += `<p>Dealing card to ${currentPlayer.name}...</p>`;
+        gameDisplay.scrollTop = gameDisplay.scrollHeight;
+
+        dealPlayerIndex++; // Move to the next player for the next card
+        if (dealPlayerIndex === numPlayers) {
+          dealPlayerIndex = 0; // Reset to first player for the second round of cards
+          dealCardPerPlayerCount++; // Increment card count after all players get one card
+        }
+
+        setTimeout(dealPlayerCardWithDelay, 1500); // 1.5 second delay between each player's card
+      } else { // Should not happen if logic is correct, but as a safeguard
+        console.error("Issue in dealing player cards loop.");
+        dealDealerCards();
+      }
+    } else { // Players have received both their cards
+      dealDealerCards();
     }
   }
 
-  const dealerHand = [deck.pop(), deck.pop()];
-  const dealerScore = calculateHandValue(dealerHand);
+  // Function to deal dealer cards after players receive theirs
+  function dealDealerCards() {
+    if (!playerData.dealerHand) {
+      playerData.dealerHand = [];
+      playerData.dealerScore = 0;
+    }
 
-  playerData.dealerHand = dealerHand;
-  playerData.dealerScore = dealerScore;
+    const dealerDiv = document.createElement('div');
+    dealerDiv.id = 'dealer-hand-display';
+    dealerDiv.className = 'dealer-hand-container';
+    handsDisplay.appendChild(dealerDiv);
 
-  // Clear and rebuild handsDisplay
-  let handsDisplay = document.getElementById("handsDisplay");
-  handsDisplay.innerHTML = '';
+    // Deal dealer's first card
+    setTimeout(() => {
+        const card1 = deck.pop();
+        playerData.dealerHand.push(card1);
+        playerData.dealerScore = calculateHandValue(playerData.dealerHand);
+        updateDealerHandDisplay(false); // First card visible, second hidden
+        gameDisplay.innerHTML += `<p>Dealing first card to Dealer...</p>`;
+        gameDisplay.scrollTop = gameDisplay.scrollHeight;
 
-  // Create display elements for all players
-  for (let i = 0; i < playerData.length; i++) {
-    updatePlayerDisplay(i); // Call a new function to update all hands for a player
+        // Deal dealer's second card (hidden)
+        setTimeout(() => {
+            const card2 = deck.pop();
+            playerData.dealerHand.push(card2);
+            playerData.dealerScore = calculateHandValue(playerData.dealerHand);
+            updateDealerHandDisplay(false); // Still show second card as hidden
+            gameDisplay.innerHTML += `<p>Dealing second card to Dealer (hidden)...</p>`;
+            gameDisplay.scrollTop = gameDisplay.scrollHeight;
+
+            // Finalize initial deal
+            gameDisplay.innerHTML += "<h2>Initial Deal Complete!</h2>";
+            gameDisplay.scrollTop = gameDisplay.scrollHeight;
+
+            // Check for initial blackjacks and then start player turns
+            setTimeout(() => {
+                // Check if any player or dealer has a Blackjack on initial deal
+                let gameEndedByBlackjack = false;
+                for (let player of playerData) {
+                    if (player.hands[0].isBlackjack) {
+                        gameDisplay.innerHTML += `<p><strong>${player.name}'s Hand 1 has Blackjack!</strong></p>`;
+                        gameEndedByBlackjack = true;
+                    }
+                }
+                if (playerData.dealerHand.length === 2 && playerData.dealerScore === 21) {
+                    gameDisplay.innerHTML += `<p><strong>Dealer has Blackjack!</strong></p>`;
+                    gameEndedByBlackjack = true;
+                    updateDealerHandDisplay(true); // Reveal dealer's hand immediately if they have Blackjack
+                }
+
+                if (gameEndedByBlackjack) {
+                    determineWinners(); // Go straight to results if there's an immediate Blackjack
+                } else {
+                    startPlayerTurn(0, 0); // Start with the first player's first hand
+                }
+            }, 500); // Small delay before determining blackjacks or starting turns
+        }, 1500); // 1.5 second delay for dealer's second card
+    }, 1500); // 1.5 second delay for dealer's first card
   }
 
-  // Create dealer display
-  const dealerDiv = document.createElement('div');
-  dealerDiv.id = 'dealer-hand-display';
-  dealerDiv.className = 'dealer-hand-container';
-  
-  const dealerCardsHTML = createCardHTML(playerData.dealerHand[0]) + createHiddenCardHTML();
-  dealerDiv.innerHTML = `
-    <h3>Dealer's Hand</h3>
-    <div class="cards-container">${dealerCardsHTML}</div>
-  `;
-  handsDisplay.appendChild(dealerDiv);
-
-  // Log initial deal to gameDisplay
-  let gameDisplay = document.getElementById("gameDisplay");
-  gameDisplay.innerHTML += "<h2>Initial Deal Complete!</h2>";
-  gameDisplay.scrollTop = gameDisplay.scrollHeight; // Scroll to bottom
+  // Start the delayed dealing process for players
+  dealPlayerCardWithDelay();
 }
 
-// New function to update a player's entire display (all their hands)
+
 function updatePlayerDisplay(playerIndex) {
     const player = playerData[playerIndex];
     let playerContainerDiv = document.getElementById(`player-${playerIndex}-hand-container`);
@@ -203,6 +272,7 @@ function updatePlayerDisplay(playerIndex) {
         playerContainerDiv.id = `player-${playerIndex}-hand-container`;
         document.getElementById("handsDisplay").appendChild(playerContainerDiv);
     }
+    // Clear previous hands HTML for this player to redraw all hands correctly
     playerContainerDiv.innerHTML = `<h2>${player.name}'s Hands (Total Sips: ${player.sips})</h2>`;
 
     player.hands.forEach((hand, handIdx) => {
@@ -232,7 +302,17 @@ function updateDealerHandDisplay(revealAll = false) {
         <div class="cards-container">${cardsHTML}</div>
       `;
     } else {
-      cardsHTML = createCardHTML(playerData.dealerHand[0]) + createHiddenCardHTML();
+      // If not revealing all, and we have at least one card, show the first card and then a hidden card
+      // This handles the case where only one card is dealt so far
+      if (playerData.dealerHand.length > 0) {
+          cardsHTML = createCardHTML(playerData.dealerHand[0]);
+          // Add hidden card only if it's the initial two cards
+          if (playerData.dealerHand.length === 1 || playerData.dealerHand.length === 2) {
+              cardsHTML += createHiddenCardHTML();
+          }
+      } else {
+          cardsHTML = ''; // No cards dealt yet
+      }
       dealerHandDiv.innerHTML = `
         <h3>Dealer's Hand</h3>
         <div class="cards-container">${cardsHTML}</div>
@@ -422,7 +502,7 @@ function split() {
 
 
     let gameDisplay = document.getElementById("gameDisplay");
-    gameDisplay.innerHTML += `<p><strong>${currentPlayer.name} splits Hand ${currentHandIndex + 1}! Two new hands created, each with a bet of ${originalBet}.</strong></p>`;
+    gameDisplay.innerHTML += `<p><strong>${currentPlayer.name} splits Hand ${currentHandIndex + 1}! Two new hands created, each with a bet of ${originalBet}.</strong></p தொடர்பானစာ။`;
     gameDisplay.scrollTop = gameDisplay.scrollHeight;
 
     updatePlayerDisplay(currentPlayerIndex); // Update the display for the player to show both new hands
@@ -600,12 +680,13 @@ function initializeGame() {
     console.log("Player data after deal:", playerData);
     
     // After dealing initial cards, ensure all player hands are updated in the display
-    for (let i = 0; i < playerData.length; i++) {
-      updatePlayerDisplay(i); // Use the new updatePlayerDisplay
-    }
+    // This is now handled within dealInitialCards's delayed process
+    // for (let i = 0; i < playerData.length; i++) {
+    //   updatePlayerDisplay(i);
+    // }
     
-    // Add a small delay to ensure DOM is updated before starting player turns
-    setTimeout(() => {
-        startPlayerTurn(0, 0); // Start with the first player's first hand
-    }, 100);
+    // Starting the turn is also handled after dealing completes
+    // setTimeout(() => {
+    //     startPlayerTurn(0, 0);
+    // }, 100);
 }
