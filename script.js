@@ -82,6 +82,47 @@ function getCardValue(card) {
   }
 }
 
+function getCardSymbol(suit) {
+  const symbols = {
+    'Hearts': '♥',
+    'Diamonds': '♦',
+    'Clubs': '♣',
+    'Spades': '♠'
+  };
+  return symbols[suit];
+}
+
+function getCardColor(suit) {
+  return ['Hearts', 'Diamonds'].includes(suit) ? 'red' : 'black';
+}
+
+function createCardHTML(card) {
+  const symbol = getCardSymbol(card.suit);
+  const color = getCardColor(card.suit);
+  const displayRank = card.rank === 'Jack' ? 'J' : 
+                     card.rank === 'Queen' ? 'Q' : 
+                     card.rank === 'King' ? 'K' : 
+                     card.rank === 'Ace' ? 'A' : card.rank;
+  
+  return `<div class="card ${color}">
+    <div class="card-corner top-left">
+      <div class="card-rank">${displayRank}</div>
+      <div class="card-suit">${symbol}</div>
+    </div>
+    <div class="card-center">${symbol}</div>
+    <div class="card-corner bottom-right">
+      <div class="card-rank">${displayRank}</div>
+      <div class="card-suit">${symbol}</div>
+    </div>
+  </div>`;
+}
+
+function createHiddenCardHTML() {
+  return `<div class="card hidden">
+    <div class="card-back">🂠</div>
+  </div>`;
+}
+
 function calculateHandValue(hand) {
   let value = 0;
   let aceCount = 0;
@@ -122,8 +163,12 @@ function dealInitialCards() {
   for (let i = 0; i < playerData.length; i++) {
     const playerDiv = document.createElement('div');
     playerDiv.id = `player-${i}-hand-display`;
+    playerDiv.className = 'player-hand-container';
+    
+    const cardsHTML = playerData[i].hand.map(card => createCardHTML(card)).join('');
     playerDiv.innerHTML = `
-      <p>${playerData[i].name}'s Hand: ${playerData[i].hand.map(card => `${card.rank} of ${card.suit}`).join(', ')} (Score: ${playerData[i].score})</p>
+      <h3>${playerData[i].name}'s Hand (Score: ${playerData[i].score})</h3>
+      <div class="cards-container">${cardsHTML}</div>
     `;
     handsDisplay.appendChild(playerDiv);
   }
@@ -131,8 +176,12 @@ function dealInitialCards() {
   // Create dealer display
   const dealerDiv = document.createElement('div');
   dealerDiv.id = 'dealer-hand-display';
+  dealerDiv.className = 'dealer-hand-container';
+  
+  const dealerCardsHTML = createCardHTML(playerData.dealerHand[0]) + createHiddenCardHTML();
   dealerDiv.innerHTML = `
-    <p>Dealer's Hand: ${playerData.dealerHand[0].rank} of ${playerData.dealerHand[0].suit}, [Hidden Card]</p>
+    <h3>Dealer's Hand</h3>
+    <div class="cards-container">${dealerCardsHTML}</div>
   `;
   handsDisplay.appendChild(dealerDiv);
 
@@ -146,10 +195,11 @@ function updatePlayerHandDisplay(playerIndex) {
   const player = playerData[playerIndex];
   let playerHandDiv = document.getElementById(`player-${playerIndex}-hand-display`);
   if (playerHandDiv) {
+    const cardsHTML = player.hand.map(card => createCardHTML(card)).join('');
+    const isCurrentPlayer = playerIndex === currentPlayerIndex;
     playerHandDiv.innerHTML = `
-      <p style="${playerIndex === currentPlayerIndex ? 'font-weight: bold; color: yellow;' : ''}">
-        ${player.name}'s Hand: ${player.hand.map(card => `${card.rank} of ${card.suit}`).join(', ')} (Score: ${player.score})
-      </p>
+      <h3 style="${isCurrentPlayer ? 'color: #d4af37; text-shadow: 0 0 10px #d4af37;' : ''}">${player.name}'s Hand (Score: ${player.score})</h3>
+      <div class="cards-container">${cardsHTML}</div>
     `;
   }
 }
@@ -157,13 +207,18 @@ function updatePlayerHandDisplay(playerIndex) {
 function updateDealerHandDisplay(revealAll = false) {
   let dealerHandDiv = document.getElementById("dealer-hand-display");
   if (dealerHandDiv) {
+    let cardsHTML;
     if (revealAll) {
+      cardsHTML = playerData.dealerHand.map(card => createCardHTML(card)).join('');
       dealerHandDiv.innerHTML = `
-        <p>Dealer's Hand: ${playerData.dealerHand.map(card => `${card.rank} of ${card.suit}`).join(', ')} (Score: ${playerData.dealerScore})</p>
+        <h3>Dealer's Hand (Score: ${playerData.dealerScore})</h3>
+        <div class="cards-container">${cardsHTML}</div>
       `;
     } else {
+      cardsHTML = createCardHTML(playerData.dealerHand[0]) + createHiddenCardHTML();
       dealerHandDiv.innerHTML = `
-        <p>Dealer's Hand: ${playerData.dealerHand[0].rank} of ${playerData.dealerHand[0].suit}, [Hidden Card]</p>
+        <h3>Dealer's Hand</h3>
+        <div class="cards-container">${cardsHTML}</div>
       `;
     }
   }
